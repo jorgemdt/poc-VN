@@ -1,3 +1,7 @@
+<img width="1356" height="672" alt="image" src="https://github.com/user-attachments/assets/653dee51-f77f-4b10-ba3d-14888a1175e9" />
+
+
+
 # VN Framework POC — Demo Interativa
 
 Prova de Conceito (POC) de um framework leve para **Visual Novels** que roda **100% no navegador**, sem etapa de build, utilizando **JavaScript puro (ES Modules)**, **Three.js** (via `<script type="importmap">`), **Canvas 2D** procedural e **Web Audio API**.
