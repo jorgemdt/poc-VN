@@ -1,0 +1,444 @@
+/* ==========================================================================
+   VN Framework POC — Estilos das Camadas DOM sobre o Canvas WebGL
+   ========================================================================== */
+
+:root {
+  --bg-dark: #0b0e17;
+  --panel-bg: rgba(13, 18, 34, 0.88);
+  --panel-border: rgba(130, 170, 255, 0.28);
+  --accent: #7aa2ff;
+  --accent-glow: rgba(122, 162, 255, 0.4);
+  --accent-alt: #c792ea;
+  --text-primary: #eef2ff;
+  --text-muted: #9aa7c7;
+  --danger: #ff6b8b;
+  --success: #6ee7b7;
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#app {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  position: relative;
+}
+
+/* --------------------------------------------------------------------------
+   Camada 1: Cena WebGL (Three.js) — Base da pilha visual
+   -------------------------------------------------------------------------- */
+#scene-container {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, #141b2d 0%, #070910 100%);
+}
+
+#scene-container canvas {
+  display: block;
+  outline: none;
+}
+
+/* --------------------------------------------------------------------------
+   Camada 2: Balão de Diálogo (Overlay DOM - z-index: 10)
+   pointer-events: none no container permite que cliques em áreas vazias
+   atravessem o DOM e cheguem ao <canvas> para avançar ou interagir com objetos.
+   -------------------------------------------------------------------------- */
+#dialogue-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 24px 32px 28px;
+}
+
+.dialogue-wrapper {
+  width: min(920px, 94vw);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.dialogue-wrapper.is-hidden {
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+}
+
+/* Container de botões de escolha acima do balão */
+.choices-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  pointer-events: none;
+}
+
+.choices-container:empty {
+  display: none;
+}
+
+.choice-btn {
+  pointer-events: auto;
+  width: min(560px, 90vw);
+  padding: 13px 22px;
+  border: 1px solid rgba(130, 170, 255, 0.45);
+  border-radius: 12px;
+  background: rgba(16, 23, 44, 0.92);
+  backdrop-filter: blur(12px);
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.choice-btn:hover,
+.choice-btn:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  background: rgba(34, 49, 92, 0.95);
+  box-shadow: 0 10px 28px var(--accent-glow);
+  outline: none;
+}
+
+/* Caixa principal do diálogo */
+.dialogue-box {
+  pointer-events: auto;
+  position: relative;
+  background: var(--panel-bg);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 24px 28px 20px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+}
+
+.dialogue-speaker {
+  display: inline-block;
+  position: absolute;
+  top: -16px;
+  left: 24px;
+  padding: 5px 16px;
+  border-radius: 999px;
+  background: #1a2442;
+  border: 1px solid var(--panel-border);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--accent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.dialogue-speaker:empty {
+  display: none;
+}
+
+.dialogue-text {
+  min-height: 3.4em;
+  font-size: 1.08rem;
+  line-height: 1.62;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+
+.dialogue-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  gap: 12px;
+}
+
+.dialogue-hint {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.dialogue-next-btn {
+  pointer-events: auto;
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(122, 162, 255, 0.4);
+  background: rgba(122, 162, 255, 0.16);
+  color: var(--text-primary);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.dialogue-next-btn:hover {
+  background: rgba(122, 162, 255, 0.32);
+  transform: translateY(-1px);
+}
+
+.dialogue-next-btn.is-hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   Camada 3: UI e Menus (Overlay DOM - z-index: 20)
+   Sempre acima do canvas e do balão de diálogo.
+   -------------------------------------------------------------------------- */
+#ui-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.hud-bar {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  left: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.hud-badge {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--panel-border);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.hud-badge strong {
+  color: var(--text-primary);
+}
+
+.hud-actions {
+  pointer-events: auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.hud-btn {
+  padding: 7px 13px;
+  border-radius: 9px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  color: var(--text-primary);
+  font-size: 0.83rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.hud-btn:hover {
+  border-color: var(--accent);
+  background: rgba(28, 39, 72, 0.95);
+  transform: translateY(-1px);
+}
+
+.hud-btn--accent {
+  border-color: rgba(199, 146, 234, 0.5);
+  color: #f3e8ff;
+}
+
+/* Toast de feedback rápido (ex.: "Estado salvo", "Efeito alterado") */
+.hud-toast {
+  position: absolute;
+  top: 62px;
+  right: 18px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(20, 29, 54, 0.95);
+  border: 1px solid var(--accent);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.hud-toast.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Modais (Menu Principal e Histórico) */
+.ui-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 9, 18, 0.76);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  pointer-events: auto;
+  transition: opacity 0.25s ease;
+}
+
+.ui-modal-backdrop.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ui-modal {
+  width: min(560px, 94vw);
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: rgba(14, 20, 38, 0.96);
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+}
+
+.ui-modal h1,
+.ui-modal h2 {
+  font-size: 1.55rem;
+  line-height: 1.25;
+  background: linear-gradient(135deg, #eef2ff, #7aa2ff, #c792ea);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.ui-modal p {
+  font-size: 0.96rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.ui-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.primary-btn {
+  padding: 11px 22px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #5c85ff, #9b6dff);
+  color: #fff;
+  font-size: 0.96rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(92, 133, 255, 0.35);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.primary-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.secondary-btn {
+  padding: 11px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  font-size: 0.94rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--accent);
+}
+
+/* Lista de histórico de falas */
+.history-list {
+  overflow-y: auto;
+  max-height: 52vh;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 6px;
+}
+
+.history-item {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.history-item-speaker {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.history-item-text {
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+@media (max-width: 640px) {
+  #dialogue-layer {
+    padding: 14px;
+  }
+
+  .dialogue-box {
+    padding: 20px 18px 16px;
+  }
+
+  .hud-bar {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .hud-badge {
+    align-self: flex-start;
+  }
+}

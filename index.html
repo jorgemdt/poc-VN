@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VN Framework POC — Demo Interativa</title>
+  <link rel="icon" href="data:," />
+
+  <!--
+    Import Map nativo do navegador: permite importar "three" diretamente nos módulos ES
+    sem necessidade de bundler (Webpack/Vite) ou etapa de build.
+  -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
+      }
+    }
+  </script>
+
+  <link rel="stylesheet" href="./styles/main.css" />
+</head>
+<body>
+  <!--
+    Arquitetura de Camadas (de trás para frente):
+    1. #scene-container (z-index: 1)  -> Canvas WebGL do Three.js com N pares (Imagem + Efeito)
+    2. #dialogue-layer  (z-index: 10) -> Balão de diálogo, typewriter e botões de escolha
+    3. #ui-layer        (z-index: 20) -> Barra de HUD, histórico, salvar/carregar e menu principal
+  -->
+  <div id="app">
+    <div id="scene-container" aria-label="Cena interativa WebGL"></div>
+    <div id="dialogue-layer"></div>
+    <div id="ui-layer"></div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
